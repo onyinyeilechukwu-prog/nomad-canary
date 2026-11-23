@@ -1,0 +1,51 @@
+name: Build and push
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg BUILD_SHA=${{ github.sha }} -t demo:ci app
+
+      - name: Start container and check /health
+        run: |
+          docker run -d --name app -p 8080:8080 demo:ci
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8080/health > /dev/null; then
+              echo "healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "container did not become healthy" >&2
+          docker logs app
+          exit 1
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag demo:ci "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:${{ github.sha }}"
