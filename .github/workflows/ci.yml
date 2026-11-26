@@ -49,3 +49,12 @@ jobs:
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
           docker tag demo:ci "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:${{ github.sha }}"
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, nomad-lab]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Nomad and wait for the rollout
+        run: nomad job run -var image_tag=${{ github.sha }} nomad/demo.nomad.hcl
