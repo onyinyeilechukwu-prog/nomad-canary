@@ -57,4 +57,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Nomad and wait for the rollout
-        run: nomad job run -var image_tag=${{ github.sha }} nomad/demo.nomad.hcl
+        run: nomad job run -var image_tag=${{ github.sha }} -var health_path=${{ vars.HEALTH_PATH || '/health' }} nomad/demo.nomad.hcl

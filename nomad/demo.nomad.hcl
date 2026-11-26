@@ -3,6 +3,12 @@ variable "image_tag" {
   description = "Image tag (commit SHA) to deploy"
 }
 
+variable "health_path" {
+  type        = string
+  default     = "/health"
+  description = "Page the health check calls (change it only for the broken-deploy demo)"
+}
+
 job "demo" {
   type        = "service"
 
@@ -38,7 +44,7 @@ job "demo" {
 
       check {
         type     = "http"
-        path     = "/health"
+        path     = var.health_path
         interval = "10s"
         timeout  = "2s"
       }
@@ -52,10 +58,11 @@ job "demo" {
         ports = ["http"]
       }
 
-      resources {
+            resources {
         cpu    = 100
         memory = 64
       }
     }
   }
 }
+      
